@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Funciones auxiliares ─────────────────────────────────────────────────
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isLoggedIn() && getUserData().role == 'admin';
+    }
+
+    function isActiveUser() {
+      return isLoggedIn() && getUserData().isActive == true;
+    }
+
+    // ── Colección: users ─────────────────────────────────────────────────────
+    match /users/{userId} {
+      // Cualquier usuario autenticado puede leer su propio perfil
+      // El admin puede leer todos los perfiles
+      allow read: if isLoggedIn() && (isOwner(userId) || isAdmin());
+
+      // Solo el propio usuario puede crear su perfil (al registrarse)
+      allow create: if isLoggedIn() && isOwner(userId);
+
+      // Solo el admin puede actualizar perfiles (ej: cambiar isActive)
+      // El propio usuario NO puede cambiar su rol
+      allow update: if isAdmin();
+    }
+
+    // ── Colección: reservations ──────────────────────────────────────────────
+    match /reservations/{reservationId} {
+      // Lectura: cualquier usuario autenticado puede leer las reservas
+      // Esto es necesario para que query(where('date', '==', date)) no falle
+      // por no incluir el filtro de status (que requeriría un índice compuesto).
+      allow read: if isLoggedIn();
+
+      // Un usuario activo puede crear una reserva (para sí mismo)
+      allow create: if isActiveUser()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      // Solo el admin puede actualizar (confirmar/cancelar)
+      // O el propio usuario puede cancelar su reserva
+      allow update: if isAdmin() || (
+        isActiveUser()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'cancelled'
+      );
+
+      // Nadie puede borrar reservas (solo cancelar)
+      allow delete: if false;
+    }
+
+    // ── Colección: waitlist ──────────────────────────────────────────────────
+    match /waitlist/{docId} {
+      // El usuario activo puede leer y escribir su propia entrada en la lista
+      allow read:   if isLoggedIn();
+      allow create: if isActiveUser()
+        && request.resource.data.userId == request.auth.uid;
+      allow delete: if isLoggedIn()
+        && resource.data.userId == request.auth.uid;
+      allow update: if false;
+    }
+
+    // ── Colección: audit_log ─────────────────────────────────────────────────
+    match /audit_log/{logId} {
+      // Solo el admin puede leer la bitácora
+      allow read: if isAdmin();
+
+      // Cualquier usuario autenticado puede crear entradas (el sistema las escribe)
+      // pero NADIE puede editarlas ni eliminarlas
+      allow create: if isLoggedIn();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ── Colección: mail ──────────────────────────────────────────────────────
+    // La extensión "Trigger Email" necesita leer esta colección para procesarla.
+    // Nuestro código escribe aquí; la extensión (cuenta de servicio) lo gestiona.
+    match /mail/{docId} {
+      allow create: if isLoggedIn();   // nuestro código escribe correos
+      allow read, update, delete: if false; // solo la extensión accede (cuenta de servicio)
+    }
+
+    // ── Colección: settings ──────────────────────────────────────────────────
+    match /settings/{docId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── Colección: blocked_slots ─────────────────────────────────────────────
+    match /blocked_slots/{docId} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
