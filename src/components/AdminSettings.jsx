@@ -66,7 +66,7 @@ export default function AdminSettings() {
   return (
     <div className="admin-section">
       <div className="admin-header">
-        <h2>⚙️ Configuración Global</h2>
+        <h2>Configuración Global</h2>
         <p className="admin-subtitle">Ajusta reglas de negocio y correos automáticos.</p>
       </div>
 
