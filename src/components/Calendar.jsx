@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { addHours, isBefore, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   getReservationsByDate,
   createMultipleReservations,
@@ -9,6 +10,7 @@ import {
   getSettings,
   getBlockedSlots,
 } from '../firebase/dbService';
+import { Calendar as CalendarIcon, Bookmark, Lock, Bell, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // Bloques disponibles: 08 al 23 (16 horas)
@@ -24,6 +26,7 @@ function toDateString(date) {
 
 function Calendar() {
   const { currentUser, userProfile, isActive } = useAuth();
+  const navigate = useNavigate();
 
   const [selectedDate, setSelectedDate]     = useState(toDateString(new Date()));
   const [reservations, setReservations]     = useState([]);
@@ -52,7 +55,6 @@ function Calendar() {
         setSettings(settingsData);
         setBlockedSlots(blocksData.filter(b => b.date === selectedDate));
       } catch (e) {
-        // Solo mostrar error si NO es la primera carga (evita el toast fugaz)
         if (!isFirstLoad) {
           toast.error('Error al cargar el horario');
         }
@@ -82,12 +84,18 @@ function Calendar() {
 
   // ── Lógica de selección: solo horas consecutivas ──────────────────────────
   const toggleHourSelection = (hour) => {
+    if (!currentUser) {
+      toast.error('Inicia sesión para reservar tu hora');
+      navigate('/login');
+      return;
+    }
+
     if (!isActive) {
       toast.error('Tu cuenta está desactivada. Contacta al administrador.');
       return;
     }
 
-    const hasReservationThisDay = reservations.some(r => r.userId === currentUser.uid);
+    const hasReservationThisDay = currentUser ? reservations.some(r => r.userId === currentUser.uid) : false;
 
     setSelectedHours(prev => {
       // Si ya está seleccionada → deseleccionar
@@ -103,7 +111,6 @@ function Calendar() {
       }
 
       // Si el usuario ya tiene reservas hoy, chequear límite de reservas por día
-      const userReservationsCount = hasReservationThisDay ? 1 : 0; // Simplificado: si tiene al menos 1, es 1 sesión. Si se permiten N, habría que contar agrupaciones
       if (hasReservationThisDay && settings?.maxReservationsPerDay === 1) {
         toast.error(`Solo puedes pedir ${settings.maxReservationsPerDay} vez por día.`);
         return prev;
@@ -133,6 +140,10 @@ function Calendar() {
   // ── Reservar el bloque seleccionado ──────────────────────────────────────
   const handleBookSelected = async () => {
     if (selectedHours.length === 0) return;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
 
     setBookingInProgress(true);
     try {
@@ -147,16 +158,16 @@ function Calendar() {
       const minH = Math.min(...selectedHours);
       const maxH = Math.max(...selectedHours) + 1;
       toast.success(
-        `✅ Bloque ${String(minH).padStart(2,'0')}:00–${String(maxH).padStart(2,'0')}:00 reservado (${selectedHours.length}h). Pendiente de confirmación.`
+        `Bloque ${String(minH).padStart(2,'0')}:00–${String(maxH).padStart(2,'0')}:00 reservado (${selectedHours.length}h). Pendiente de confirmación.`
       );
 
       setSelectedHours([]);
       const updated = await getReservationsByDate(selectedDate);
       setReservations(updated);
     } catch (e) {
-      console.error('❌ Error al reservar:', e.code, e.message, e);
+      console.error('Error al reservar:', e.code, e.message, e);
       if (e.message === 'HORA_OCUPADA') {
-        toast.error('⚡ Alguna de las horas seleccionadas ya fue tomada.');
+        toast.error('Alguna de las horas seleccionadas ya fue tomada.');
         const updated = await getReservationsByDate(selectedDate);
         setReservations(updated);
         setSelectedHours([]);
@@ -175,6 +186,12 @@ function Calendar() {
 
   // ── Waitlist ──────────────────────────────────────────────────────────────
   const handleWaitlist = async (hour) => {
+    if (!currentUser) {
+      toast.error('Inicia sesión para unirte a la lista de espera');
+      navigate('/login');
+      return;
+    }
+
     try {
       const result = await joinWaitlist({
         userId:    currentUser.uid,
@@ -183,9 +200,9 @@ function Calendar() {
         startTime: hour,
       });
       if (result === 'already_exists') {
-        toast('Ya estás en la lista de espera para este bloque 🔔', { icon: 'ℹ️' });
+        toast('Ya estás en la lista de espera para este bloque');
       } else {
-        toast.success('¡Listo! Te avisaremos si esta hora queda libre 🔔');
+        toast.success('¡Listo! Te avisaremos si esta hora queda libre');
       }
     } catch {
       toast.error('Error al unirse a la lista de espera');
@@ -209,7 +226,7 @@ function Calendar() {
     <div className="calendar-section">
       {/* ── Selector de fecha ── */}
       <div className="calendar-header">
-        <h3 className="calendar-title">Selecciona un día</h3>
+        <h3 className="calendar-title">Disponibilidad de la Sala</h3>
         <input
           id="date-picker"
           type="date"
@@ -221,19 +238,20 @@ function Calendar() {
         />
       </div>
 
-      <p className="calendar-day-label">
-        📅 {displayDate.charAt(0).toUpperCase() + displayDate.slice(1)}
+      <p className="calendar-day-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <CalendarIcon size={16} />
+        <span>{displayDate.charAt(0).toUpperCase() + displayDate.slice(1)}</span>
       </p>
 
       {/* ── Instrucción ── */}
       <p className="calendar-instruction">
-        Haz clic en las horas que quieras reservar. Solo se permiten bloques continuos.
+        Haz clic en las horas disponibles para reservar tu bloque de ensayo.
       </p>
 
       {/* ── Leyenda ── */}
       <div className="calendar-legend">
         <span className="legend-item free">Disponible</span>
-        <span className="legend-item selected-legend">Seleccionado</span>
+        {currentUser && <span className="legend-item selected-legend">Seleccionado</span>}
         <span className="legend-item taken">Ocupado</span>
         <span className="legend-item past">No disponible</span>
       </div>
@@ -253,35 +271,40 @@ function Calendar() {
                 className={`slot slot-${status} ${isSelected ? 'slot-selected' : ''}`}
               >
                 <div className="slot-time">
-                  {String(hour).padStart(2, '0')}:00
-                  <span className="slot-arrow">→</span>
-                  {String(hour + 1).padStart(2, '0')}:00
+                  {String(hour).padStart(2, '0')}:00 - {String(hour + 1).padStart(2, '0')}:00
                 </div>
 
                 {status === 'free' && (
                   <button
                     className={`slot-btn ${isSelected ? 'slot-btn-selected' : 'slot-btn-book'}`}
                     onClick={() => toggleHourSelection(hour)}
-                    disabled={bookingInProgress || !isActive}
                   >
-                    {isSelected ? '✓ Seleccionado' : 'Seleccionar'}
+                    {!currentUser ? 'Reservar' : isSelected ? 'Seleccionado' : 'Seleccionar'}
                   </button>
                 )}
 
                 {status === 'taken' && (
                   <div className="slot-taken-info">
-                    <span className="slot-taken-label">
-                      {reservation?.userId === currentUser.uid
-                        ? '📌 Mi reserva'
-                        : '🔒 Ocupado'}
-                    </span>
-                    {reservation?.userId !== currentUser.uid && (
+                    {currentUser && reservation?.userId === currentUser.uid ? (
+                      <span className="slot-taken-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Bookmark size={12} />
+                        <span>Mi reserva</span>
+                      </span>
+                    ) : (
+                      <span className="slot-taken-label" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Lock size={12} />
+                        <span>Ocupado</span>
+                      </span>
+                    )}
+                    {(!currentUser || reservation?.userId !== currentUser.uid) && (
                       <button
                         className="slot-btn slot-btn-waitlist"
                         onClick={() => handleWaitlist(hour)}
                         title="Avísame si se libera"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}
                       >
-                        🔔 Avisar
+                        <Bell size={12} />
+                        <span>Avisar</span>
                       </button>
                     )}
                   </div>
@@ -296,8 +319,8 @@ function Calendar() {
         </div>
       )}
 
-      {/* ── Barra de selección flotante ── */}
-      {selectedHours.length > 0 && (
+      {/* ── Barra de selección flotante (solo si está logueado) ── */}
+      {currentUser && selectedHours.length > 0 && (
         <div className="selection-bar">
           <div className="selection-info">
             <span className="selection-count">{selectedHours.length}h seleccionada{selectedHours.length > 1 ? 's' : ''}</span>
@@ -323,7 +346,7 @@ function Calendar() {
       )}
 
       {/* ── Modal de confirmación ── */}
-      {showConfirmModal && (() => {
+      {currentUser && showConfirmModal && (() => {
         const PRECIO_HORA = settings?.pricePerHour || 8000;
         const depositPerc = settings?.depositPercentage || 25;
         const total = selectedHours.length * PRECIO_HORA;
@@ -332,20 +355,17 @@ function Calendar() {
         return (
           <div className="modal-overlay" onClick={() => !bookingInProgress && setShowConfirmModal(false)}>
             <div className="modal-card" onClick={e => e.stopPropagation()}>
-              <h3>Confirmar reserva</h3>
-              <p>
-                ¿Reservar <strong>{selectedHours.length} hora{selectedHours.length > 1 ? 's' : ''}</strong> el día <strong>{displayDate}</strong>?
-              </p>
-              <div className="modal-hours-list">
+              <h3 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>Confirmar Reserva</h3>
+              <div className="modal-hours-list" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
                 {[...selectedHours].sort((a,b)=>a-b).map(h => (
                   <span key={h} className="modal-hour-chip">
-                    {String(h).padStart(2,'0')}:00 — {String(h+1).padStart(2,'0')}:00
+                    {String(h).padStart(2,'0')}:00 - {String(h+1).padStart(2,'0')}:00
                   </span>
                 ))}
               </div>
 
               {/* ── Desglose de precio ── */}
-              <div className="modal-price-box">
+              <div className="modal-price-box" style={{ marginBottom: '1rem' }}>
                 <div className="modal-price-row">
                   <span>Precio por hora</span><span>{fmt(PRECIO_HORA)}</span>
                 </div>
@@ -356,18 +376,20 @@ function Calendar() {
                   <span>Total sesión</span><span>{fmt(total)}</span>
                 </div>
                 <div className="modal-price-row modal-price-abono">
-                  <span>💰 Abono requerido ({settings?.depositPercentage || 25}%)</span><span>{fmt(abono)}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <DollarSign size={16} />
+                    <span>Abono requerido ({settings?.depositPercentage || 25}%)</span>
+                  </span>
+                  <span>{fmt(abono)}</span>
                 </div>
               </div>
 
-              <p className="modal-note">
-                Recibirás un <strong>correo con los datos de transferencia</strong>. Envía el comprobante por WhatsApp para que el administrador confirme tu reserva.
-              </p>
-              <div className="modal-actions">
+              <div className="modal-actions" style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <button
                   className="btn-outline"
                   onClick={() => setShowConfirmModal(false)}
                   disabled={bookingInProgress}
+                  style={{ flex: 1 }}
                 >
                   Cancelar
                 </button>
@@ -375,8 +397,9 @@ function Calendar() {
                   className="btn-primary"
                   onClick={handleBookSelected}
                   disabled={bookingInProgress}
+                  style={{ flex: 1 }}
                 >
-                  {bookingInProgress ? 'Reservando...' : `Sí, reservar ${selectedHours.length}h`}
+                  {bookingInProgress ? 'Reservando...' : 'Confirmar'}
                 </button>
               </div>
             </div>
