@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Páginas
+import Home from './pages/Home';
 import Login from './pages/Login';
 import UserDashboard from './pages/UserDashboard';
 import AdminPanel from './pages/AdminPanel';
@@ -37,8 +38,8 @@ function App() {
 
       <BrowserRouter>
         <Routes>
-          {/* Ruta raíz → redirige a /login */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Ruta raíz → Landing Page */}
+          <Route path="/" element={<Home />} />
 
           {/* Rutas públicas: cualquiera puede acceder */}
           <Route path="/login"    element={<Login />} />
@@ -63,8 +64,8 @@ function App() {
             }
           />
 
-          {/* Cualquier URL desconocida → a login */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Cualquier URL desconocida → a la raíz */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
