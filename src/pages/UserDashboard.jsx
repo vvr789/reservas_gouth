@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { logoutUser } from '../firebase/authService';
-import Calendar from '../components/Calendar';
+import CalendarComponent from '../components/Calendar';
 import MyReservations from '../components/MyReservations';
+import { Calendar as CalendarIcon, Folder, Music, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TABS = [
-  { id: 'calendar',     label: '📅 Reservar hora' },
-  { id: 'my-reservations', label: '🗂 Mis reservas' },
+  { id: 'calendar', label: 'Reservar hora', Icon: CalendarIcon },
+  { id: 'my-reservations', label: 'Mis reservas', Icon: Folder },
 ];
 
 function UserDashboard() {
@@ -19,18 +20,22 @@ function UserDashboard() {
   const handleLogout = async () => {
     await logoutUser();
     navigate('/login');
-    toast('Sesión cerrada. ¡Hasta pronto! 👋', { icon: '🔒' });
+    toast.success('Sesión cerrada. ¡Hasta pronto!');
   };
 
   return (
     <div className="dashboard-page">
       {/* ── Navbar ─────────────────────────────────────────────── */}
       <nav className="navbar">
-        <div className="navbar-brand">🎸 Sala de Ensayo</div>
+        <div className="navbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Music size={20} />
+          <span>Sala de Ensayo</span>
+        </div>
         <div className="navbar-user">
           {isAdmin && (
-            <button className="btn-admin-link" onClick={() => navigate('/admin')}>
-              Panel Admin ⚙️
+            <button className="btn-admin-link" onClick={() => navigate('/admin')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Settings size={16} />
+              <span>Panel Admin</span>
             </button>
           )}
           <span className="navbar-name">
@@ -42,21 +47,26 @@ function UserDashboard() {
 
       {/* ── Tabs ────────────────────────────────────────────────── */}
       <div className="tabs-container">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            id={`tab-${tab.id}`}
-            className={`tab-btn ${activeTab === tab.id ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {TABS.map(tab => {
+          const Icon = tab.Icon;
+          return (
+            <button
+              key={tab.id}
+              id={`tab-${tab.id}`}
+              className={`tab-btn ${activeTab === tab.id ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Icon size={18} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Contenido ───────────────────────────────────────────── */}
       <main className="dashboard-main">
-        {activeTab === 'calendar'        && <Calendar />}
+        {activeTab === 'calendar'        && <CalendarComponent />}
         {activeTab === 'my-reservations' && <MyReservations />}
       </main>
     </div>
