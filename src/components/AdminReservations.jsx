@@ -10,12 +10,13 @@ import {
   cancelMultipleReservations,
   markAttendance,
 } from '../firebase/dbService';
+import { Inbox } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pendiente ⏳', cls: 'status-pending' },
-  confirmed: { label: 'Confirmada ✅', cls: 'status-confirmed' },
-  cancelled: { label: 'Cancelada ❌', cls: 'status-cancelled' },
+  pending: { label: 'Pendiente', cls: 'status-pending' },
+  confirmed: { label: 'Confirmada', cls: 'status-confirmed' },
+  cancelled: { label: 'Cancelada', cls: 'status-cancelled' },
 };
 
 /**
@@ -88,7 +89,7 @@ function AdminReservations() {
       } else {
         await confirmMultipleReservations(pending, currentUser.email);
       }
-      toast.success(`✅ Bloque de ${group.userName} confirmado (${pending.length}h)`);
+      toast.success(`Bloque de ${group.userName} confirmado (${pending.length}h)`);
       await load();
     } catch {
       toast.error('Error al confirmar.');
@@ -180,7 +181,7 @@ function AdminReservations() {
 
       {groups.length === 0 ? (
         <div className="reservations-empty">
-          <span className="empty-icon">📭</span>
+          <Inbox size={48} style={{ marginBottom: '1rem', color: 'var(--text-muted)' }} />
           <p>No hay reservas en esta categoría.</p>
         </div>
       ) : (
@@ -231,7 +232,7 @@ function AdminReservations() {
                           ? STATUS_CONFIG.confirmed
                           : allPending
                             ? STATUS_CONFIG.pending
-                            : { label: 'Mixto ⚠️', cls: 'status-pending' };
+                            : { label: 'Mixto', cls: 'status-pending' };
                         return <span className={`status-badge ${cls}`}>{label}</span>;
                       })()}
                     </td>
@@ -243,7 +244,7 @@ function AdminReservations() {
                             onClick={() => handleConfirmBlock(group)}
                             disabled={isProcessing}
                           >
-                            {isProcessing ? '...' : `✅ Confirmar ${group.pendingReservations.length}h`}
+                            {isProcessing ? '...' : `Confirmar ${group.pendingReservations.length}h`}
                           </button>
                         )}
                         {(() => {
@@ -256,7 +257,7 @@ function AdminReservations() {
                               title={past ? "No se puede cancelar una reserva que ya pasó" : ""}
                               style={past ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                             >
-                              {isProcessing ? '...' : '✕ Cancelar'}
+                              {isProcessing ? '...' : 'Cancelar'}
                             </button>
                           );
                         })()}
@@ -275,19 +276,19 @@ function AdminReservations() {
                                         className={`btn-admin-link ${r.attended === true ? 'active-attended' : ''}`}
                                         onClick={() => handleSingleAttendance(r, true, group.key)}
                                         disabled={isProcessing || !canMark}
-                                        style={{ color: r.attended === true ? '#3fb950' : '#8b949e', fontSize: '12px', padding: '2px 4px', opacity: canMark ? 1 : 0.3 }}
+                                        style={{ color: r.attended === true ? '#5c7f53' : '#8b949e', fontSize: '12px', padding: '2px 4px', opacity: canMark ? 1 : 0.3 }}
                                         title={canMark ? "" : "Solo se puede marcar asistencia después de la hora de inicio"}
                                       >
-                                        ✅ Sí
+                                        Sí
                                       </button>
                                       <button
                                         className={`btn-admin-link ${r.attended === false ? 'active-absent' : ''}`}
                                         onClick={() => handleSingleAttendance(r, false, group.key)}
                                         disabled={isProcessing || !canMark}
-                                        style={{ color: r.attended === false ? '#f85149' : '#8b949e', fontSize: '12px', padding: '2px 4px', opacity: canMark ? 1 : 0.3 }}
+                                        style={{ color: r.attended === false ? '#b85c5c' : '#8b949e', fontSize: '12px', padding: '2px 4px', opacity: canMark ? 1 : 0.3 }}
                                         title={canMark ? "" : "Solo se puede marcar asistencia después de la hora de inicio"}
                                       >
-                                        ❌ No
+                                        No
                                       </button>
                                     </>
                                   );
