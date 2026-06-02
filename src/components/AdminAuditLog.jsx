@@ -2,16 +2,17 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getAuditLog } from '../firebase/dbService';
+import { Calendar, Check, X, Ban, ShieldAlert, ShieldCheck, FileText, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Descripción legible de cada acción
+// Descripción legible de cada acción con componente de icono Lucide
 const ACTION_CONFIG = {
-  CREATE:           { label: 'Nueva reserva',         icon: '📅', cls: 'action-create' },
-  CONFIRM:          { label: 'Confirmada por admin',  icon: '✅', cls: 'action-confirm' },
-  CANCEL_BY_USER:   { label: 'Cancelada por usuario', icon: '❌', cls: 'action-cancel' },
-  CANCEL_BY_ADMIN:  { label: 'Cancelada por admin',   icon: '🚫', cls: 'action-cancel' },
-  USER_DEACTIVATED: { label: 'Usuario desactivado',   icon: '🔒', cls: 'action-warn' },
-  USER_REACTIVATED: { label: 'Usuario reactivado',    icon: '🔓', cls: 'action-create' },
+  CREATE:           { label: 'Nueva reserva',         icon: Calendar, cls: 'action-create' },
+  CONFIRM:          { label: 'Confirmada por admin',  icon: Check, cls: 'action-confirm' },
+  CANCEL_BY_USER:   { label: 'Cancelada por usuario', icon: X, cls: 'action-cancel' },
+  CANCEL_BY_ADMIN:  { label: 'Cancelada por admin',   icon: Ban, cls: 'action-cancel' },
+  USER_DEACTIVATED: { label: 'Usuario desactivado',   icon: ShieldAlert, cls: 'action-warn' },
+  USER_REACTIVATED: { label: 'Usuario reactivado',    icon: ShieldCheck, cls: 'action-create' },
 };
 
 function AdminAuditLog() {
@@ -46,7 +47,7 @@ function AdminAuditLog() {
         <h3 className="section-title">Bitácora de Auditoría</h3>
         <input
           type="text"
-          placeholder="🔍 Buscar por usuario o acción..."
+          placeholder="Buscar por usuario o acción..."
           className="search-input"
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -55,7 +56,7 @@ function AdminAuditLog() {
 
       {filtered.length === 0 ? (
         <div className="reservations-empty">
-          <span className="empty-icon">📝</span>
+          <FileText size={48} style={{ marginBottom: '1rem', color: 'var(--text-muted)' }} />
           <p>No hay registros en la bitácora aún.</p>
         </div>
       ) : (
@@ -71,7 +72,8 @@ function AdminAuditLog() {
             </thead>
             <tbody>
               {filtered.map(log => {
-                const cfg = ACTION_CONFIG[log.action] ?? { label: log.action, icon: '•', cls: '' };
+                const cfg = ACTION_CONFIG[log.action] ?? { label: log.action, icon: FileText, cls: '' };
+                const IconComponent = cfg.icon;
                 const ts  = log.timestamp?.toDate
                   ? format(log.timestamp.toDate(), "d MMM yyyy HH:mm", { locale: es })
                   : '—';
@@ -79,8 +81,9 @@ function AdminAuditLog() {
                 return (
                   <tr key={log.id}>
                     <td>
-                      <span className={`action-pill ${cfg.cls}`}>
-                        {cfg.icon} {cfg.label}
+                      <span className={`action-pill ${cfg.cls}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <IconComponent size={14} />
+                        <span>{cfg.label}</span>
                       </span>
                     </td>
                     <td>
@@ -92,11 +95,19 @@ function AdminAuditLog() {
                       </div>
                     </td>
                     <td className="table-detail">
-                      {log.date
-                        ? <>🗓 {log.date} — {String(log.startTime).padStart(2,'0')}:00</>
-                        : log.targetUserId
-                          ? <>👤 ID: {log.targetUserId.slice(0, 8)}...</>
-                          : '—'}
+                      {log.date ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Calendar size={14} />
+                          <span>{log.date} — {String(log.startTime).padStart(2,'0')}:00</span>
+                        </span>
+                      ) : log.targetUserId ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <User size={14} />
+                          <span>ID: {log.targetUserId.slice(0, 8)}...</span>
+                        </span>
+                      ) : (
+                        '—'
+                      )}
                     </td>
                     <td className="table-date">{ts}</td>
                   </tr>
