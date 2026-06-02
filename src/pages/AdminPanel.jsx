@@ -8,14 +8,15 @@ import AdminAuditLog from '../components/AdminAuditLog';
 import AdminSettings from '../components/AdminSettings';
 import AdminAvailability from '../components/AdminAvailability';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { ClipboardList, Calendar, Users, FileText, Settings, Shield, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TABS = [
-  { id: 'reservations', label: '📋 Reservas' },
-  { id: 'availability', label: '🗓️ Disponibilidad' },
-  { id: 'users',        label: '👥 Usuarios' },
-  { id: 'audit',        label: '📝 Bitácora' },
-  { id: 'settings',     label: '⚙️ Configuración' },
+  { id: 'reservations', label: 'Reservas', Icon: ClipboardList },
+  { id: 'availability', label: 'Disponibilidad', Icon: Calendar },
+  { id: 'users',        label: 'Usuarios', Icon: Users },
+  { id: 'audit',        label: 'Bitácora', Icon: FileText },
+  { id: 'settings',     label: 'Configuración', Icon: Settings },
 ];
 
 function AdminPanel() {
@@ -26,17 +27,21 @@ function AdminPanel() {
   const handleLogout = async () => {
     await logoutUser();
     navigate('/login');
-    toast('Sesión cerrada. ¡Hasta pronto! 👋', { icon: '🔒' });
+    toast.success('Sesión cerrada. ¡Hasta pronto!');
   };
 
   return (
     <div className="dashboard-page admin">
       {/* ── Navbar ─────────────────────────────────────────────── */}
       <nav className="navbar admin-navbar">
-        <div className="navbar-brand">⚙️ Panel Admin — Sala de Ensayo</div>
+        <div className="navbar-brand" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Shield size={20} />
+          <span>Panel Admin — Sala de Ensayo</span>
+        </div>
         <div className="navbar-user">
-          <button className="btn-admin-link" onClick={() => navigate('/dashboard')}>
-            Vista Usuario 🎸
+          <button className="btn-admin-link" onClick={() => navigate('/dashboard')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <User size={16} />
+            <span>Vista Usuario</span>
           </button>
           <span className="navbar-badge">ADMIN</span>
           <span className="navbar-name">
@@ -48,16 +53,21 @@ function AdminPanel() {
 
       {/* ── Tabs ────────────────────────────────────────────────── */}
       <div className="tabs-container">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            id={`admin-tab-${tab.id}`}
-            className={`tab-btn ${activeTab === tab.id ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {TABS.map(tab => {
+          const Icon = tab.Icon;
+          return (
+            <button
+              key={tab.id}
+              id={`admin-tab-${tab.id}`}
+              className={`tab-btn ${activeTab === tab.id ? 'tab-active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            >
+              <Icon size={18} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── Contenido ───────────────────────────────────────────── */}
