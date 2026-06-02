@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
 import { getAllUsers, setUserActive, getAllReservations } from '../firebase/dbService';
+import { Users, Shield, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 function AdminUsers() {
@@ -47,7 +48,6 @@ function AdminUsers() {
   useEffect(() => { load(); }, []);
 
   const handleToggle = async (user) => {
-    // El admin no puede desactivarse a sí mismo
     if (user.uid === currentUser.uid) {
       toast.error('No puedes desactivar tu propia cuenta');
       return;
@@ -57,8 +57,8 @@ function AdminUsers() {
       await setUserActive(user.uid, !user.isActive, currentUser.email);
       toast.success(
         user.isActive
-          ? `🔒 ${user.displayName} desactivado`
-          : `🔓 ${user.displayName} reactivado`
+          ? `${user.displayName} desactivado`
+          : `${user.displayName} reactivado`
       );
       await load();
     } catch {
@@ -81,7 +81,7 @@ function AdminUsers() {
         <h3 className="section-title">Gestión de Usuarios</h3>
         <input
           type="text"
-          placeholder="🔍 Buscar por nombre o correo..."
+          placeholder="Buscar por nombre o correo..."
           className="search-input"
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -90,7 +90,7 @@ function AdminUsers() {
 
       {filtered.length === 0 ? (
         <div className="reservations-empty">
-          <span className="empty-icon">👥</span>
+          <Users size={48} style={{ marginBottom: '1rem', color: 'var(--text-muted)' }} />
           <p>No se encontraron usuarios.</p>
         </div>
       ) : (
@@ -126,19 +126,20 @@ function AdminUsers() {
                       </div>
                     </td>
                     <td>
-                      <span className={`role-badge ${u.role === 'admin' ? 'role-admin' : 'role-user'}`}>
-                        {u.role === 'admin' ? '⚙️ Admin' : '👤 Usuario'}
+                      <span className={`role-badge ${u.role === 'admin' ? 'role-admin' : 'role-user'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        {u.role === 'admin' ? <Shield size={14} /> : <User size={14} />}
+                        <span>{u.role === 'admin' ? 'Admin' : 'Usuario'}</span>
                       </span>
                     </td>
                     <td className="table-date">{createdAt}</td>
                     <td>
                       {stats[u.uid] ? (
                         <div style={{ fontSize: '12px', color: '#8b949e' }}>
-                          <div>⏳ Pendientes: {stats[u.uid].pending}</div>
-                          <div>✅ Confirmadas: {stats[u.uid].confirmed}</div>
-                          <div>🏃 Asistencias: {stats[u.uid].attended}</div>
-                          <div>❌ Inasistencias: {stats[u.uid].absent}</div>
-                          <div>🚫 Canceladas: {stats[u.uid].cancelled}</div>
+                          <div>Pendientes: {stats[u.uid].pending}</div>
+                          <div>Confirmadas: {stats[u.uid].confirmed}</div>
+                          <div>Asistencias: {stats[u.uid].attended}</div>
+                          <div>Inasistencias: {stats[u.uid].absent}</div>
+                          <div>Canceladas: {stats[u.uid].cancelled}</div>
                         </div>
                       ) : (
                         <span style={{ fontSize: '12px', color: '#8b949e' }}>Sin historial</span>
@@ -156,7 +157,7 @@ function AdminUsers() {
                         disabled={isSelf || isToggling}
                         title={isSelf ? 'No puedes modificar tu propia cuenta' : ''}
                       >
-                        {isToggling ? '...' : u.isActive ? '🔒 Desactivar' : '🔓 Activar'}
+                        {isToggling ? '...' : u.isActive ? 'Desactivar' : 'Activar'}
                       </button>
                     </td>
                   </tr>
