@@ -3,13 +3,14 @@ import { format, parseISO, addHours, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
 import { getReservationsByUser, cancelReservation, getSettings } from '../firebase/dbService';
+import { Calendar, Clock, Inbox } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Mapeo de status a etiqueta y color
+// Mapeo de status a etiqueta y color (sin emojis)
 const STATUS_CONFIG = {
-  pending:   { label: 'Pendiente ⏳', cls: 'status-pending' },
-  confirmed: { label: 'Confirmada ✅', cls: 'status-confirmed' },
-  cancelled: { label: 'Cancelada ❌', cls: 'status-cancelled' },
+  pending:   { label: 'Pendiente', cls: 'status-pending' },
+  confirmed: { label: 'Confirmada', cls: 'status-confirmed' },
+  cancelled: { label: 'Cancelada', cls: 'status-cancelled' },
 };
 
 function MyReservations() {
@@ -54,7 +55,7 @@ function MyReservations() {
   if (loading) return <div className="reservations-loading">Cargando tus reservas...</div>;
   if (reservations.length === 0) return (
     <div className="reservations-empty">
-      <span className="empty-icon">📭</span>
+      <Inbox size={48} style={{ marginBottom: '1rem', color: 'var(--text-muted)' }} />
       <p>Aún no tienes reservas.<br />¡Usa el calendario para agendar tu primera hora!</p>
     </div>
   );
@@ -80,11 +81,13 @@ function MyReservations() {
           return (
             <div key={r.id} className={`reservation-card ${r.status === 'cancelled' ? 'reservation-cancelled' : ''}`}>
               <div className="reservation-info">
-                <div className="reservation-date">
-                  📅 {dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}
+                <div className="reservation-date" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Calendar size={16} />
+                  <span>{dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1)}</span>
                 </div>
-                <div className="reservation-time">
-                  🕐 {String(r.startTime).padStart(2, '0')}:00 — {String(r.endTime).padStart(2, '0')}:00 hrs
+                <div className="reservation-time" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <Clock size={16} />
+                  <span>{String(r.startTime).padStart(2, '0')}:00 — {String(r.endTime).padStart(2, '0')}:00 hrs</span>
                 </div>
               </div>
 
