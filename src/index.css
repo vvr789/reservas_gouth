@@ -2145,4 +2145,32 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .auth-title, .hero-title, .section-main-t
   background: var(--bg-elevated) !important;
   color: var(--text-primary) !important;
 }
-
+
+/* --- Admin Settings --- */
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.settings-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.settings-card h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+}
+
+.settings-actions {
+  margin-top: 2.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
