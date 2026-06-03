@@ -172,8 +172,8 @@ function Calendar() {
         setReservations(updated);
         setSelectedHours([]);
       } else if (e.message === 'YA_TIENES_ESTA_HORA' || e.message === 'YA_TIENES_RESERVA_HOY') {
-        toast.error('Ya tienes reservas activas excediendo tu límite hoy.');
-      } else if (e.message === 'MAXIMO_4_HORAS') {
+        toast.error(`Ya excediste el límite de reservas por día (${settings?.maxReservationsPerDay || 1}).`);
+      } else if (e.message === 'MAX_HOURS_EXCEEDED' || e.message === 'MAXIMO_4_HORAS') {
         toast.error(`Puedes pedir ${settings?.maxHoursPerDay || 4} horas de corrido como máximo.`);
       } else {
         toast.error('Error al reservar. Intenta de nuevo.');

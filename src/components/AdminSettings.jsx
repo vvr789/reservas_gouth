@@ -92,6 +92,10 @@ export default function AdminSettings() {
               <input type="number" name="maxHoursPerDay" value={settings.maxHoursPerDay} onChange={handleChange} required />
             </div>
             <div className="form-group">
+              <label>Reservas máximas permitidas por día (por usuario)</label>
+              <input type="number" name="maxReservationsPerDay" value={settings.maxReservationsPerDay} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
               <label>Plazo mínimo cancelación (horas antes)</label>
               <input type="number" name="cancelDeadlineHours" value={settings.cancelDeadlineHours} onChange={handleChange} required />
             </div>

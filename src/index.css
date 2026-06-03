@@ -2121,4 +2121,28 @@ h1, h2, h3, h4, h5, h6, .navbar-brand, .auth-title, .hero-title, .section-main-t
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Asistencia Toggles */
+.active-attended {
+  background: rgba(63, 185, 80, 0.2) !important;
+  color: #3fb950 !important;
+  border-color: #3fb950 !important;
+}
+
+.active-absent {
+  background: rgba(248, 81, 73, 0.2) !important;
+  color: #f85149 !important;
+  border-color: #f85149 !important;
+}
+
+.attendance-btn-default {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border) !important;
+}
+
+.attendance-btn-default:hover:not(:disabled) {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
 

@@ -238,24 +238,27 @@ function AdminReservations() {
                     </td>
                     <td>
                       <div className="table-actions">
-                        {group.hasAnyPending && (
-                          <button
-                            className="btn-confirm-admin"
-                            onClick={() => handleConfirmBlock(group)}
-                            disabled={isProcessing}
-                          >
-                            {isProcessing ? '...' : `Confirmar ${group.pendingReservations.length}h`}
-                          </button>
-                        )}
-                        {(() => {
+                        {group.hasAnyPending && (() => {
                           const past = isPastStartTime(group.date, group.minHour);
+                          return (
+                            <button
+                              className="btn-confirm-admin"
+                              onClick={() => handleConfirmBlock(group)}
+                              disabled={isProcessing || past}
+                              title={past ? "No se puede confirmar una reserva que ya pasó" : ""}
+                              style={past ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                            >
+                              {isProcessing ? '...' : `Confirmar ${group.pendingReservations.length}h`}
+                            </button>
+                          );
+                        })()}
+                        {(() => {
                           return (
                             <button
                               className="btn-cancel-admin"
                               onClick={() => handleCancelBlock(group)}
-                              disabled={isProcessing || past}
-                              title={past ? "No se puede cancelar una reserva que ya pasó" : ""}
-                              style={past ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+                              disabled={isProcessing}
+                              title="Cancelar esta reserva"
                             >
                               {isProcessing ? '...' : 'Cancelar'}
                             </button>
@@ -273,19 +276,19 @@ function AdminReservations() {
                                   return (
                                     <>
                                       <button
-                                        className={`btn-admin-link ${r.attended === true ? 'active-attended' : ''}`}
+                                        className={`btn-admin-link ${r.attended === true ? 'active-attended' : 'attendance-btn-default'}`}
                                         onClick={() => handleSingleAttendance(r, true, group.key)}
                                         disabled={isProcessing || !canMark}
-                                        style={{ color: r.attended === true ? '#5c7f53' : '#8b949e', fontSize: '12px', padding: '2px 4px', opacity: canMark ? 1 : 0.3 }}
+                                        style={{ fontSize: '12px', padding: '4px 12px', opacity: canMark ? 1 : 0.3 }}
                                         title={canMark ? "" : "Solo se puede marcar asistencia después de la hora de inicio"}
                                       >
                                         Sí
                                       </button>
                                       <button
-                                        className={`btn-admin-link ${r.attended === false ? 'active-absent' : ''}`}
+                                        className={`btn-admin-link ${r.attended === false ? 'active-absent' : 'attendance-btn-default'}`}
                                         onClick={() => handleSingleAttendance(r, false, group.key)}
                                         disabled={isProcessing || !canMark}
-                                        style={{ color: r.attended === false ? '#b85c5c' : '#8b949e', fontSize: '12px', padding: '2px 4px', opacity: canMark ? 1 : 0.3 }}
+                                        style={{ fontSize: '12px', padding: '4px 12px', opacity: canMark ? 1 : 0.3 }}
                                         title={canMark ? "" : "Solo se puede marcar asistencia después de la hora de inicio"}
                                       >
                                         No

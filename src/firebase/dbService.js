@@ -31,6 +31,9 @@ import {
  * Usado por el calendario para saber qué bloques están ocupados.
  */
 export async function getReservationsByDate(date) {
+  // Limpiar reservas pendientes expiradas antes de leer el calendario
+  await _cleanUpExpiredReservations().catch(e => console.error("Auto-cancel error:", e));
+
   const q = query(
     collection(db, 'reservations'),
     where('date', '==', date)
@@ -66,6 +69,9 @@ export async function getReservationsByUser(userId) {
  * Ordenado en el cliente por fecha.
  */
 export async function getAllReservations() {
+  // Limpiar antes de mostrar en admin panel
+  await _cleanUpExpiredReservations().catch(e => console.error("Auto-cancel error:", e));
+
   const snap = await getDocs(collection(db, 'reservations'));
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   return data.sort((a, b) => (a.date > b.date ? 1 : -1));
@@ -80,6 +86,14 @@ export async function getAllReservations() {
  * @param {number[]} params.hours - Array de horas [14, 15, 16]
  */
 export async function createMultipleReservations({ userId, userEmail, userName, date, hours }) {
+  const settings = await getSettings();
+  const maxHours = settings.maxHoursPerDay || 4;
+  const maxReservations = settings.maxReservationsPerDay || 1;
+
+  if (hours.length > maxHours) {
+    throw new Error('MAX_HOURS_EXCEEDED');
+  }
+
   // ── Paso 1: Verificar disponibilidad ──────────────────────────────────────
   // Solo filtramos por 'date' en Firestore para evitar requerir un índice compuesto.
   const slotQuery = query(
@@ -88,16 +102,24 @@ export async function createMultipleReservations({ userId, userEmail, userName, 
   );
   const slotSnap = await getDocs(slotQuery);
 
-  if (hours.length > 4) {
-    throw new Error('MAXIMO_4_HORAS');
-  }
-
   const userReservationsToday = slotSnap.docs.filter(d => {
     const data = d.data();
     return (data.status === 'pending' || data.status === 'confirmed') && data.userId === userId;
   });
 
-  if (userReservationsToday.length > 0) {
+  // Agrupar por hora contigua para contar cuántas "reservas" distintas tiene hoy
+  const bookedHours = userReservationsToday.map(r => r.data().startTime).sort((a,b)=>a-b);
+  let distinctBookings = 0;
+  if (bookedHours.length > 0) {
+    distinctBookings = 1;
+    for (let i = 1; i < bookedHours.length; i++) {
+      if (bookedHours[i] !== bookedHours[i-1] + 1) {
+        distinctBookings++;
+      }
+    }
+  }
+
+  if (distinctBookings >= maxReservations) {
     throw new Error('YA_TIENES_RESERVA_HOY');
   }
 
@@ -391,6 +413,17 @@ export async function joinWaitlist({ userId, userEmail, date, startTime }) {
  * Función privada: busca en la waitlist y envía correos a los interesados.
  */
 async function _notifyWaitlist(date, startTime) {
+  // Omitir notificación si la hora ya pasó
+  try {
+    const slotTime = new Date(`${date}T${String(startTime).padStart(2, '0')}:00:00`);
+    if (new Date() >= slotTime) {
+      console.log(`[Waitlist] Omitiendo notificación porque el bloque ya pasó: ${date} ${startTime}:00`);
+      return;
+    }
+  } catch (e) {
+    console.error("Error validando fecha en _notifyWaitlist", e);
+  }
+
   const q = query(
     collection(db, 'waitlist'),
     where('date', '==', date),
@@ -599,4 +632,54 @@ export async function markAttendance(reservationId, attended, adminEmail) {
   });
 
   await batch.commit();
+}
+
+/**
+ * Función interna: busca reservas pendientes cuya fecha de creación
+ * supera el tiempo límite y las pasa a 'cancelled'.
+ */
+async function _cleanUpExpiredReservations() {
+  const settings = await getSettings();
+  const autoReleaseHours = settings.autoReleaseHours !== undefined ? Number(settings.autoReleaseHours) : 2;
+  
+  if (autoReleaseHours <= 0) return; // 0 significa deshabilitado
+  
+  const limitMillis = Date.now() - (autoReleaseHours * 60 * 60 * 1000);
+
+  const q = query(
+    collection(db, 'reservations'),
+    where('status', '==', 'pending')
+  );
+  const snap = await getDocs(q);
+  
+  const toCancel = snap.docs.filter(d => {
+    const data = d.data();
+    if (!data.createdAt) return false;
+    // toMillis() existe en objetos Timestamp de Firestore
+    const createdMillis = data.createdAt.toMillis ? data.createdAt.toMillis() : 0;
+    return createdMillis > 0 && createdMillis < limitMillis;
+  });
+
+  if (toCancel.length === 0) return;
+
+  const batch = writeBatch(db);
+  toCancel.forEach(docSnap => {
+    batch.update(docSnap.ref, { status: 'cancelled' });
+    
+    const auditRef = doc(collection(db, 'audit_log'));
+    batch.set(auditRef, {
+      reservationId: docSnap.id,
+      date: docSnap.data().date,
+      startTime: docSnap.data().startTime,
+      performedBy: 'system',
+      performedByRole: 'system',
+      action: 'SYSTEM_AUTO_CANCEL',
+      fromStatus: 'pending',
+      toStatus: 'cancelled',
+      timestamp: serverTimestamp(),
+    });
+  });
+
+  await batch.commit();
+  console.log(`[AutoCancel] Canceladas ${toCancel.length} reservas expiradas.`);
 }
