@@ -7,11 +7,13 @@ import AdminUsers from '../components/AdminUsers';
 import AdminAuditLog from '../components/AdminAuditLog';
 import AdminSettings from '../components/AdminSettings';
 import AdminAvailability from '../components/AdminAvailability';
+import MetricsDashboard from '../components/MetricsDashboard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { ClipboardList, Calendar, Users, FileText, Settings, Shield, User } from 'lucide-react';
+import { ClipboardList, Calendar, Users, FileText, Settings, Shield, User, BarChart2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TABS = [
+  { id: 'metrics',      label: 'Métricas', Icon: BarChart2 },
   { id: 'reservations', label: 'Reservas', Icon: ClipboardList },
   { id: 'availability', label: 'Disponibilidad', Icon: Calendar },
   { id: 'users',        label: 'Usuarios', Icon: Users },
@@ -73,6 +75,7 @@ function AdminPanel() {
       {/* ── Contenido ───────────────────────────────────────────── */}
       <main className="dashboard-main">
         <ErrorBoundary>
+          {activeTab === 'metrics'      && <MetricsDashboard />}
           {activeTab === 'reservations' && <AdminReservations />}
           {activeTab === 'availability' && <AdminAvailability />}
           {activeTab === 'users'        && <AdminUsers />}
